@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=15';
+import { fmt0 } from '../util.js?v=16';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -696,7 +696,7 @@ function drawCooler(R) {
   box(x + w / 2 - 11, y - 26, 22, 38, '#525c68'); // Abluftkamin
   smoke(x + w / 2, y - 26, R.puff + 800, '#aab6c4', 0.3 + clamp(R.clk / 130, 0, 1) * 0.5);
 }
-function drawDome() {
+function drawDome(R) {
   const [x, y, w, h] = HIT.clinkersilo;
   shadow(x + w / 2, w / 2 + 4);
   const baseY = y + h - 36;
@@ -711,7 +711,30 @@ function drawDome() {
   ctx.quadraticCurveTo(x + w / 2, y - 18, x + w - 4, baseY);
   ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.6; ctx.stroke();
+  // Klinker-Füllstand innerhalb der Kuppel
+  const sil = R.state.silos.clinker;
+  if (sil) {
+    const f = clamp(sil.level / sil.cap, 0, 1);
+    const apexY = y - 18;
+    const fillTop = baseY - (baseY - apexY) * f;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x + 4, baseY);
+    ctx.quadraticCurveTo(x + w / 2, apexY, x + w - 4, baseY);
+    ctx.closePath();
+    ctx.clip();
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = '#9c9484';
+    ctx.fillRect(x, fillTop, w, baseY - fillTop + 2);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.moveTo(x + 4, baseY);
+  ctx.quadraticCurveTo(x + w / 2, y - 18, x + w - 4, baseY);
+  ctx.closePath();
+  ctx.stroke();
   // Segmentrippen
   ctx.strokeStyle = 'rgba(13,19,27,.24)'; ctx.lineWidth = 1.6;
   for (const fx of [0.26, 0.5, 0.74]) {
@@ -722,16 +745,31 @@ function drawDome() {
   }
   box(x + w / 2 - 12, y - 26, 24, 14, '#6b7682'); // Kopfhaus
 }
-function drawCementSilos() {
+function drawCementSilos(R) {
   const [x, y, w, h] = HIT.cementsilo;
   shadow(x + w / 2, w / 2 + 6);
   box(x + 2, y + 6, w - 4, 9, '#6b7682'); // Verbindungssteg oben
   const sw = (w - 8) / 3;
+  const sil = R.state.silos.cement;
+  const f = sil ? clamp(sil.level / sil.cap, 0, 1) : 0;
   for (let k = 0; k < 3; k++) {
     const sx = x + 4 + k * sw;
     const top = y + 16;
+    const innerH = h - 32;
     box(sx + 2, y + h - 16, sw - 6, 16, '#4d5762'); // Sockel
-    vcyl(sx + 2, top, sw - 6, h - 32, '#ced5dd', '#9aa3ad');
+    vcyl(sx + 2, top, sw - 6, innerH, '#ced5dd', '#9aa3ad');
+    // Zement-Füllstand
+    if (f > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(sx + 3, top + innerH * (1 - f), sw - 8, innerH * f);
+      ctx.clip();
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = '#e0e4ea';
+      ctx.fillRect(sx + 3, top, sw - 8, innerH);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
     // flache Kuppe
     ctx.fillStyle = '#c4ccd4';
     ctx.beginPath();
@@ -1108,9 +1146,9 @@ export function drawFlowsheet(state, now, selectedId, hourFloat) {
   drawCalciner(R);
   drawKiln(R);
   drawCooler(R);
-  drawDome();
+  drawDome(R);
   drawMill('cementmill', '#aeb7c2', spin.cementmill, millType);
-  drawCementSilos();
+  drawCementSilos(R);
   drawDispatch();
 
   for (const id in HIT) drawLabel(id, state, m);
