@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=5';
+import { fmt0 } from '../util.js?v=6';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -43,6 +43,25 @@ let animLast = 0;
 const scroll = { raw: 0, clinker: 0, cement: 0 };
 const spin = { kiln: 0, rawmill: 0, cementmill: 0 };
 let puff = 0;
+
+// Tageszeit-Himmel: Stützfarben je Stunde (top/bottom als RGB)
+let stars = null;
+const SKY = [
+  { h: 0,    top: [10, 15, 32],   bot: [22, 30, 54] },
+  { h: 5,    top: [30, 36, 64],   bot: [86, 64, 96] },
+  { h: 6.5,  top: [60, 78, 124],  bot: [234, 150, 92] },
+  { h: 8,    top: [80, 124, 178], bot: [176, 200, 226] },
+  { h: 12,   top: [92, 146, 202], bot: [190, 216, 236] },
+  { h: 17,   top: [80, 122, 178], bot: [198, 190, 212] },
+  { h: 18.5, top: [60, 66, 108],  bot: [236, 124, 76] },
+  { h: 20,   top: [28, 36, 66],   bot: [60, 52, 90] },
+  { h: 24,   top: [10, 15, 32],   bot: [22, 30, 54] },
+];
+const CLOUDS = [
+  { x: 0.18, y: 0.15, s: 1.0, sp: 1.0 },
+  { x: 0.55, y: 0.09, s: 0.7, sp: 0.6 },
+  { x: 0.82, y: 0.21, s: 0.85, sp: 0.8 },
+];
 
 export function initFlowsheet(cv, selectCb) {
   canvas = cv;
@@ -586,6 +605,131 @@ function drawZoomButtons() {
   ctx.textBaseline = 'alphabetic';
 }
 
+// ---------- Tageszeit-Himmel ----------
+function lerp(a, b, t) { return a + (b - a) * t; }
+function rgbStr(a) { return `rgb(${a[0] | 0},${a[1] | 0},${a[2] | 0})`; }
+function lerpArr(a, b, t) { return a.map((v, i) => lerp(v, b[i], t)); }
+
+function skyAt(hour) {
+  const h = ((hour % 24) + 24) % 24;
+  for (let i = 0; i < SKY.length - 1; i++) {
+    if (h >= SKY[i].h && h < SKY[i + 1].h) {
+      const t = (h - SKY[i].h) / (SKY[i + 1].h - SKY[i].h);
+      return {
+        top: lerpArr(SKY[i].top, SKY[i + 1].top, t),
+        bot: lerpArr(SKY[i].bot, SKY[i + 1].bot, t),
+      };
+    }
+  }
+  return { top: SKY[0].top, bot: SKY[0].bot };
+}
+function nightFactor(hour) {
+  const h = ((hour % 24) + 24) % 24;
+  if (h >= 21 || h <= 4) return 1;
+  if (h > 4 && h < 6) return clamp((6 - h) / 2, 0, 1);
+  if (h > 19 && h < 21) return clamp((h - 19) / 2, 0, 1);
+  return 0;
+}
+function ensureStars() {
+  if (stars) return;
+  stars = [];
+  for (let i = 0; i < 84; i++) {
+    stars.push({
+      x: Math.random(), y: Math.random() * 0.56,
+      r: Math.random() * 1.4 + 0.5, ph: Math.random() * 7,
+    });
+  }
+}
+function drawCloud(cx, cy, s, alpha) {
+  if (alpha <= 0.01) return;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#dfe6ee';
+  for (const [dx, dy, r] of [[-34, 6, 22], [-8, -6, 28], [22, 4, 24], [46, 10, 18]]) {
+    ctx.beginPath();
+    ctx.arc(cx + dx * s, cy + dy * s, r * s, 0, 7);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function drawSky(hour, now) {
+  ensureStars();
+  const pal = skyAt(hour);
+  const g = ctx.createLinearGradient(0, 0, 0, cssH);
+  g.addColorStop(0, rgbStr(pal.top));
+  g.addColorStop(0.72, rgbStr(pal.bot));
+  g.addColorStop(1, rgbStr(lerpArr(pal.bot, [0, 0, 0], 0.25)));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, cssW, cssH);
+
+  // Sterne
+  const nf = nightFactor(hour);
+  if (nf > 0) {
+    ctx.fillStyle = '#ffffff';
+    for (const st of stars) {
+      const tw = 0.55 + 0.45 * Math.sin(now / 600 + st.ph);
+      ctx.globalAlpha = nf * tw * 0.9;
+      ctx.beginPath();
+      ctx.arc(st.x * cssW, st.y * cssH, st.r, 0, 7);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  const horizon = cssH * 0.66, apex = cssH * 0.09;
+  const left = cssW * 0.12, right = cssW * 0.88;
+
+  // Sonne auf dem Tagesbogen (6–18 Uhr)
+  const sunP = (hour - 6) / 12;
+  const sunAlt = Math.sin(clamp(sunP, 0, 1) * Math.PI);
+  if (sunP > -0.07 && sunP < 1.07) {
+    const sx = lerp(left, right, sunP);
+    const sy = lerp(horizon, apex, Math.max(0, sunAlt));
+    const warm = clamp(1 - sunAlt * 1.7, 0, 1);
+    if (warm > 0.05) {
+      const hg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 220);
+      hg.addColorStop(0, `rgba(255,140,60,${0.42 * warm})`);
+      hg.addColorStop(1, 'rgba(255,140,60,0)');
+      ctx.fillStyle = hg;
+      ctx.fillRect(sx - 220, sy - 220, 440, 440);
+    }
+    const col = rgbStr(lerpArr([255, 138, 58], [255, 236, 172], clamp(sunAlt * 1.5, 0, 1)));
+    const dg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 52);
+    dg.addColorStop(0, col);
+    dg.addColorStop(0.5, col);
+    dg.addColorStop(1, 'rgba(255,220,150,0)');
+    ctx.fillStyle = dg;
+    ctx.beginPath(); ctx.arc(sx, sy, 52, 0, 7); ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(sx, sy, 21, 0, 7); ctx.fill();
+  }
+
+  // Mond auf dem Nachtbogen (18–6 Uhr)
+  const moonP = ((((hour - 18) % 24) + 24) % 24) / 12;
+  const moonAlt = Math.sin(clamp(moonP, 0, 1) * Math.PI);
+  if (moonP > -0.07 && moonP < 1.07) {
+    const mx = lerp(left, right, moonP);
+    const my = lerp(horizon, apex, Math.max(0, moonAlt));
+    const mg = ctx.createRadialGradient(mx, my, 0, mx, my, 48);
+    mg.addColorStop(0, 'rgba(214,224,240,.55)');
+    mg.addColorStop(1, 'rgba(214,224,240,0)');
+    ctx.fillStyle = mg;
+    ctx.beginPath(); ctx.arc(mx, my, 48, 0, 7); ctx.fill();
+    ctx.fillStyle = '#e7ecf3';
+    ctx.beginPath(); ctx.arc(mx, my, 16, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ccd4df';
+    for (const [dx, dy, r] of [[-5, -4, 4], [6, 3, 3], [2, -7, 2.4]]) {
+      ctx.beginPath(); ctx.arc(mx + dx, my + dy, r, 0, 7); ctx.fill();
+    }
+  }
+
+  // Wolken (tagsüber sichtbar)
+  const dayF = clamp((hour - 5.5) / 2, 0, 1) * clamp((19.5 - hour) / 2, 0, 1);
+  for (const c of CLOUDS) {
+    const cx = (((c.x + now * 0.0000022 * c.sp) % 1.25) + 1.25) % 1.25 - 0.12;
+    drawCloud(cx * cssW, c.y * cssH, c.s, dayF * 0.5);
+  }
+}
+
 // ---------- Hauptfunktion ----------
 export function drawFlowsheet(state, now, selectedId) {
   if (!ctx) return;
@@ -607,12 +751,7 @@ export function drawFlowsheet(state, now, selectedId) {
   }
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const sky = ctx.createLinearGradient(0, 0, 0, cssH);
-  sky.addColorStop(0, '#1b2738');
-  sky.addColorStop(0.6, '#2c3c52');
-  sky.addColorStop(1, '#3a4a60');
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, cssW, cssH);
+  drawSky(state.time.hour, now);
 
   ctx.save();
   ctx.translate(panX, panY);
@@ -661,6 +800,13 @@ export function drawFlowsheet(state, now, selectedId) {
   for (const id in HIT) drawStatus(id, state, m, selectedId);
 
   ctx.restore();
+
+  // Nachtschleier — dunkelt das Werk in der Nacht ab
+  const nf = nightFactor(state.time.hour);
+  if (nf > 0) {
+    ctx.fillStyle = `rgba(8,12,28,${nf * 0.34})`;
+    ctx.fillRect(0, 0, cssW, cssH);
+  }
 
   drawZoomButtons();
 
