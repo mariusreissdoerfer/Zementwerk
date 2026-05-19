@@ -1,6 +1,6 @@
 // Kopfzeile (KPIs, Uhr, Geld, Alarme), Toasts und generischer Modal-Dialog.
 
-import { fmt0, fmtMoney } from '../util.js?v=9';
+import { fmt0, fmtMoney } from '../util.js?v=10';
 
 let elClock, elMoney, elProfit, elKpis, elAlarm, elModal, elToast;
 let toastTimer = null;
@@ -46,9 +46,12 @@ export function initHud() {
   });
 }
 
-export function updateHud(state, m) {
-  const h = String(state.time.hour).padStart(2, '0');
-  elClock.textContent = `Tag ${state.time.day} · ${h}:00`;
+export function updateHud(state, m, hourFloat) {
+  const hf = hourFloat ?? state.time.hour;
+  const h = Math.floor(hf) % 24;
+  const mm = Math.floor((((hf % 1) + 1) % 1) * 6) * 10; // 10-Minuten-Schritte
+  const pad = n => String(n).padStart(2, '0');
+  elClock.textContent = `Tag ${state.time.day} · ${pad(h)}:${pad(mm)}`;
   elMoney.textContent = fmtMoney(state.money);
   elMoney.style.color = state.money < 0 ? '#ff5a52' : '#ffd24a';
 

@@ -1,13 +1,13 @@
 // Verdrahtung: Spiel-Loop, Footer-Steuerung, Modals, Canvas-Eingabe.
 
-import { simulate, qualityModel } from '../sim/simulation.js?v=9';
-import { initFlowsheet, drawFlowsheet } from './flowsheet.js?v=9';
-import { initPanels, openPanel, closePanel, currentPanelUnit, refreshPanel } from './panels.js?v=9';
-import { initHud, updateHud, toast, openModal } from './hud.js?v=9';
-import { MISSIONS } from '../game/scenarios.js?v=9';
-import { UPGRADES, buyUpgrade } from '../game/upgrades.js?v=9';
-import { saveState, clearSave } from '../game/state.js?v=9';
-import { fmtMoney, fmt0 } from '../util.js?v=9';
+import { simulate, qualityModel } from '../sim/simulation.js?v=10';
+import { initFlowsheet, drawFlowsheet } from './flowsheet.js?v=10';
+import { initPanels, openPanel, closePanel, currentPanelUnit, refreshPanel } from './panels.js?v=10';
+import { initHud, updateHud, toast, openModal } from './hud.js?v=10';
+import { MISSIONS } from '../game/scenarios.js?v=10';
+import { UPGRADES, buyUpgrade } from '../game/upgrades.js?v=10';
+import { saveState, clearSave } from '../game/state.js?v=10';
+import { fmtMoney, fmt0 } from '../util.js?v=10';
 
 const TICK_MS = 850;
 let state, last = 0, acc = 0, tickCount = 0, saveTimer = null;
@@ -39,7 +39,7 @@ function frame(now) {
   // fließende Tageszeit: ganze Stunde + Fortschritt zum nächsten Tick
   const hourFloat = state.time.hour + (state.speed > 0 ? acc / TICK_MS : 0);
   drawFlowsheet(state, now, currentPanelUnit(), hourFloat);
-  updateHud(state, displayMetrics());
+  updateHud(state, displayMetrics(), hourFloat);
   requestAnimationFrame(frame);
 }
 
@@ -69,7 +69,7 @@ function scheduleSave() {
 function buildFooter() {
   const speed = document.getElementById('speed');
   speed.innerHTML = '';
-  for (const [v, lab] of [[0, '❚❚'], [1, '▶'], [2, '▶▶'], [4, '▶▶▶']]) {
+  for (const [v, lab] of [[0, '❚❚'], [0.4, '10ʹ'], [1, '1×'], [2, '2×'], [4, '4×']]) {
     const b = document.createElement('button');
     b.textContent = lab;
     b.dataset.speed = v;

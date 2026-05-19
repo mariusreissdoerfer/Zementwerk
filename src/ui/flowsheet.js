@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=9';
+import { fmt0 } from '../util.js?v=10';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -283,10 +283,76 @@ function drawCrusher() {
   box(x + 20, y + 40, w - 40, h - 40, '#69737f');
   box(x + w - 30, y + h - 54, 26, 30, '#4f5965');
 }
-function drawBallMill(id, accent, spinVal) {
+// Mahlaggregat — Darstellung je nach gewähltem Typ.
+function drawMill(id, accent, spinVal, type) {
   const [x, y, w, h] = HIT[id];
-  box(x + 10, y + h - 34, w - 20, 34, '#4a5460');
-  const dy = y + h - 96, dh = 70;
+  box(x + 10, y + h - 30, w - 20, 30, '#4a5460'); // Fundament
+
+  if (type === 'verticalmill') {
+    // Vertikalmühle: stehendes Trapezgehäuse mit Klassierer und Mahlteller
+    const cx = x + w / 2 - 12;
+    const bodyBot = y + h - 30, bodyTop = y + 50;
+    ctx.fillStyle = '#7c8590';
+    ctx.beginPath();
+    ctx.moveTo(cx - 32, bodyTop); ctx.lineTo(cx + 32, bodyTop);
+    ctx.lineTo(cx + 56, bodyBot); ctx.lineTo(cx - 56, bodyBot);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.4; ctx.stroke();
+    vcyl(cx - 26, bodyTop - 32, 52, 32, '#aeb7c2', '#7c8590');
+    ctx.fillStyle = '#9aa4b0';
+    ctx.beginPath();
+    ctx.moveTo(cx - 26, bodyTop - 32); ctx.lineTo(cx + 26, bodyTop - 32);
+    ctx.lineTo(cx, bodyTop - 50); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.2; ctx.stroke();
+    // rotierender Mahlteller
+    ctx.save();
+    ctx.translate(cx, bodyBot - 8);
+    ctx.fillStyle = '#566270';
+    ctx.beginPath(); ctx.ellipse(0, 0, 48, 12, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2; ctx.stroke();
+    ctx.strokeStyle = accent; ctx.lineWidth = 3;
+    for (let k = 0; k < 6; k++) {
+      const a = spinVal * 6.283 + k * 1.047;
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a) * 45, Math.sin(a) * 11); ctx.stroke();
+    }
+    ctx.restore();
+    box(x + w - 44, y + h - 50, 34, 20, '#444d58');
+    return;
+  }
+
+  if (type === 'rollerpress') {
+    // Rollenpresse: Rahmen, Aufgabetrichter und zwei gegenläufige Walzen
+    const cx = x + w / 2;
+    const fy = y + h - 104, fh = 74;
+    box(cx - 80, fy - 6, 160, fh + 12, '#5a6470');
+    ctx.fillStyle = '#7f8b99';
+    ctx.beginPath();
+    ctx.moveTo(cx - 42, fy - 6); ctx.lineTo(cx + 42, fy - 6);
+    ctx.lineTo(cx + 15, fy - 34); ctx.lineTo(cx - 15, fy - 34);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.2; ctx.stroke();
+    const rR = 31, ry = fy + fh / 2;
+    [[1, cx - rR + 3], [-1, cx + rR - 3]].forEach(([dir, rx]) => {
+      ctx.fillStyle = '#8a94a0';
+      ctx.beginPath(); ctx.arc(rx, ry, rR, 0, 7); ctx.fill();
+      ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.4; ctx.stroke();
+      ctx.save();
+      ctx.translate(rx, ry);
+      ctx.strokeStyle = accent; ctx.lineWidth = 3;
+      for (let k = 0; k < 6; k++) {
+        const a = dir * spinVal * 6.283 + k * 1.047;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * (rR - 6), Math.sin(a) * (rR - 6)); ctx.stroke();
+      }
+      ctx.restore();
+    });
+    box(x + w - 42, y + h - 50, 32, 20, '#444d58');
+    return;
+  }
+
+  // Kugelmühle: liegende, rotierende Trommel
+  const dy = y + h - 92, dh = 66;
   vcyl(x + 28, dy, w - 90, dh, '#808993', '#565f6b');
   ctx.fillStyle = '#737d8a';
   for (const cx of [x + 28, x + w - 62]) {
@@ -295,7 +361,6 @@ function drawBallMill(id, accent, spinVal) {
     ctx.fill();
     ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.2; ctx.stroke();
   }
-  // Rotationsbänder — Versatz aus spinVal (steht still, wenn Mühle aus)
   ctx.strokeStyle = accent;
   ctx.lineWidth = 4;
   const span = w - 116;
@@ -306,7 +371,7 @@ function drawBallMill(id, accent, spinVal) {
     ctx.lineTo(bx, dy + dh - 4);
     ctx.stroke();
   }
-  box(x + w - 56, y + h - 60, 44, 30, '#444d58');
+  box(x + w - 56, y + h - 56, 44, 26, '#444d58');
 }
 function drawSilo(R, id, c1, c2, matCol) {
   const [x, y, w, h] = HIT[id];
@@ -583,6 +648,46 @@ function drawStatus(id, state, m, selected) {
   }
 }
 
+const MILL_NAME = { ballmill: 'Kugelmühle', verticalmill: 'Vertikalmühle', rollerpress: 'Rollenpresse' };
+
+// Welche Ausbauten/Einstellungen sind an einem Aggregat sichtbar zu kennzeichnen?
+function upgradeTags(id, state) {
+  const u = state.upgrades, t = [];
+  if (id === 'preheater' && u.preheaterStages > 4) t.push(u.preheaterStages + '-stufig');
+  if (id === 'cooler') {
+    if (u.coolerEff >= 0.78) t.push('Hocheffizienz');
+    if (u.whr) t.push('WHR-Strom');
+  }
+  if (id === 'kiln' && u.altFuelSystem) t.push('RDF-Dosierung');
+  if (id === 'rawmill' || id === 'cementmill') t.push(MILL_NAME[state.controls.millType] || '');
+  return t.filter(Boolean);
+}
+
+// Grüne Plaketten über einem Aggregat — zeigen die installierten Ausbauten.
+function drawUpgradeTags(id, state) {
+  const tags = upgradeTags(id, state);
+  if (!tags.length) return;
+  const [x, y, w] = HIT[id];
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '600 13px Segoe UI, sans-serif';
+  let ty = y - 13;
+  for (let i = tags.length - 1; i >= 0; i--) {
+    const label = tags[i];
+    const tw = ctx.measureText(label).width + 16;
+    ctx.fillStyle = 'rgba(67,209,122,.94)';
+    rr(x + w / 2 - tw / 2, ty - 9, tw, 18, 9);
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.fillStyle = '#0c2415';
+    ctx.fillText(label, x + w / 2, ty + 1);
+    ty -= 23;
+  }
+  ctx.textBaseline = 'alphabetic';
+}
+
 function drawZoomButtons() {
   const s = 42, mg = 12;
   const bx = cssW - mg - s;
@@ -799,20 +904,22 @@ export function drawFlowsheet(state, now, selectedId, hourFloat) {
   belt(1965, 332, 2055, 206, cem, '#e2e7ee', scroll.cement);
   belt(2120, 300, 2176, 332, cem, '#e2e7ee', scroll.cement);
 
+  const millType = state.controls.millType;
   drawQuarry();
   drawCrusher();
-  drawBallMill('rawmill', '#c7b48f', spin.rawmill);
+  drawMill('rawmill', '#c7b48f', spin.rawmill, millType);
   drawSilo(R, 'blending', '#c2cad3', '#9099a3', '#c7b48f');
   drawPreheater(R);
   drawCalciner(R);
   drawKiln(R);
   drawCooler(R);
   drawDome();
-  drawBallMill('cementmill', '#aeb7c2', spin.cementmill);
+  drawMill('cementmill', '#aeb7c2', spin.cementmill, millType);
   drawCementSilos();
   drawDispatch();
 
   for (const id in HIT) drawLabel(id, state, m);
+  for (const id in HIT) drawUpgradeTags(id, state);
   for (const id in HIT) drawStatus(id, state, m, selectedId);
 
   ctx.restore();

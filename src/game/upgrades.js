@@ -30,13 +30,6 @@ export const UPGRADES = [
     apply: s => { s.upgrades.altFuelSystem = true; },
   },
   {
-    id: 'vrm', name: 'Vertikalrollenmühlen', cost: 2_500_000,
-    desc: 'Ersetzt Kugelmühlen — senkt den Mahlstrombedarf um rund 28 %.',
-    available: s => !s.upgrades.vrm,
-    done: s => s.upgrades.vrm,
-    apply: s => { s.upgrades.vrm = true; },
-  },
-  {
     id: 'whr', name: 'Abwärmenutzung (WHR)', cost: 3_100_000,
     desc: 'Stromerzeugung aus Ofenabwärme — etwa 30 kWh je t Klinker.',
     available: s => !s.upgrades.whr,

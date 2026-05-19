@@ -1,10 +1,10 @@
 // Aggregat-Detailpanel mit Schiebereglern und Live-Anzeigen.
 
-import { qualityModel, CAP } from '../sim/simulation.js?v=9';
-import { repairCost } from '../game/upgrades.js?v=9';
-import { FUELS } from '../data/fuels.js?v=9';
-import { ADDITIVES } from '../data/materials.js?v=9';
-import { fmt0, fmt1, fmt2, fmtMoney, fmtInt } from '../util.js?v=9';
+import { qualityModel, CAP } from '../sim/simulation.js?v=10';
+import { repairCost } from '../game/upgrades.js?v=10';
+import { FUELS } from '../data/fuels.js?v=10';
+import { ADDITIVES } from '../data/materials.js?v=10';
+import { fmt0, fmt1, fmt2, fmtMoney, fmtInt } from '../util.js?v=10';
 
 const NAMES = {
   quarry: 'Steinbruch', crusher: 'Brecher', rawmill: 'Rohmühle', blending: 'Mischbett / Rohmehl-Silo',
@@ -114,6 +114,16 @@ function makeReadout(specs) {
 
 function title(t) { return E('div', 'hint', t); }
 
+// Mahlaggregat-Auswahl (gilt für Roh- und Zementmühle).
+function millSelector(c) {
+  panelEl.append(E('div', 'hint', 'Mahlaggregat — bestimmt den Mahlstrombedarf:'));
+  panelEl.append(segmented([
+    { value: 'ballmill', label: 'Kugelmühle' },
+    { value: 'verticalmill', label: 'Vertikalmühle' },
+    { value: 'rollerpress', label: 'Rollenpresse' },
+  ], c.millType, v => c.millType = v));
+}
+
 // ---------- Render ----------
 function render() {
   const id = currentUnit;
@@ -149,6 +159,7 @@ function buildBody(id) {
         value: c.rawMealFineness, fmt: v => Math.round(22 - v * 16) + ' % Rückstand',
         on: v => c.rawMealFineness = v,
       }));
+      millSelector(c);
       panelEl.append(E('div', 'hint', 'Rohmehl-Rezeptur (Anteile) — bestimmt Kalkstandard & Module:'));
       for (const [mid, name] of [['limestone', 'Kalkstein'], ['clay', 'Ton/Mergel'], ['sand', 'Sand'], ['ironOre', 'Eisenerz']]) {
         panelEl.append(slider({
@@ -214,6 +225,7 @@ function buildBody(id) {
         value: c.cementFineness, fmt: v => fmt0(2800 + v * 2200) + ' cm²/g',
         on: v => c.cementFineness = v,
       }));
+      millSelector(c);
       panelEl.append(E('div', 'hint', 'Zement-Rezeptur (Anteile):'));
       for (const [rid, name] of [['clinker', 'Klinker'], ['gypsum', 'Gips'], ['scm', 'Zumahlstoff']]) {
         panelEl.append(slider({

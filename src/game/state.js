@@ -20,6 +20,7 @@ export function defaultState() {
       cementFineness: 0.55,
       rawMillRate: 175,           // Soll t Rohmehl/h
       cementMillRate: 120,        // Soll t Zement/h
+      millType: 'rollerpress',    // ballmill | verticalmill | rollerpress
     },
 
     units: {
@@ -39,7 +40,7 @@ export function defaultState() {
     market: { priceFactor: 1.0, demand: 120, certPrice: 85 },
     upgrades: {
       preheaterStages: 4, coolerEff: 0.66, dustFilter: 1,
-      whr: false, vrm: false, altFuelSystem: false,
+      whr: false, altFuelSystem: false,
     },
 
     missions: { completed: [], stars: {} },
@@ -63,7 +64,24 @@ export function loadState() {
     if (!raw) return null;
     const s = JSON.parse(raw);
     if (!s || s.version !== 2) return null;
-    return s;
+    // Mit den Standardwerten zusammenführen, damit neue Felder ergänzt werden.
+    const b = defaultState();
+    const sc = s.controls || {};
+    return {
+      ...b, ...s,
+      time: { ...b.time, ...s.time },
+      controls: {
+        ...b.controls, ...sc,
+        fuelMix: { ...b.controls.fuelMix, ...sc.fuelMix },
+        recipe: { ...b.controls.recipe, ...sc.recipe },
+        cementRecipe: { ...b.controls.cementRecipe, ...sc.cementRecipe },
+      },
+      upgrades: { ...b.upgrades, ...s.upgrades },
+      market: { ...b.market, ...s.market },
+      finance: { ...b.finance, ...s.finance },
+      missions: { ...b.missions, ...s.missions },
+      events: { ...b.events, ...s.events },
+    };
   } catch (e) { return null; }
 }
 

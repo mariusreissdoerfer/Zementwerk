@@ -1,8 +1,8 @@
 // Physikalisch-chemische Formeln des Zementwerks (Mix-Modell).
 // Alle Funktionen sind rein (ohne Seiteneffekte) und damit leicht testbar.
 
-import { OXIDES } from '../data/materials.js?v=9';
-import { FUELS } from '../data/fuels.js?v=9';
+import { OXIDES } from '../data/materials.js?v=10';
+import { FUELS } from '../data/fuels.js?v=10';
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -115,14 +115,17 @@ export function strength28(C3S, blaineVal, freeLimePct, clinkerFrac) {
   return Math.max(0, s);
 }
 
+// Stromfaktor je Mahlaggregat-Typ (1 = Kugelmühle als Referenz).
+export const MILL_FACTOR = { ballmill: 1.0, verticalmill: 0.74, rollerpress: 0.64 };
+
 // Elektrischer Energiebedarf [kWh] für eine Stunde Betrieb.
-export function electricalEnergy({ rawMeal, clinker, cement, rawMealFineness, cementFineness, vrm }) {
-  const millFactor = vrm ? 0.72 : 1;             // Vertikalrollenmühle spart Strom
-  const eRawmill = rawMeal * (14 + 12 * rawMealFineness) * millFactor;
+export function electricalEnergy({ rawMeal, clinker, cement, rawMealFineness, cementFineness, millType }) {
+  const mf = MILL_FACTOR[millType] || 1;         // effizientes Mahlaggregat spart Strom
+  const eRawmill = rawMeal * (14 + 12 * rawMealFineness) * mf;
   const eCrusher = rawMeal * 1.6;
   const eKilnLine = clinker * 26;
   const eCooler = clinker * 5;
-  const eCementmill = cement * (26 + 24 * cementFineness) * millFactor;
+  const eCementmill = cement * (26 + 24 * cementFineness) * mf;
   const eMisc = 9 * Math.max(rawMeal, clinker, cement);
   return (eRawmill + eCrusher + eKilnLine + eCooler + eCementmill + eMisc) / 1000; // MWh
 }
