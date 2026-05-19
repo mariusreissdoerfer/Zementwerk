@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=6';
+import { fmt0 } from '../util.js?v=7';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -741,13 +741,14 @@ export function drawFlowsheet(state, now, selectedId) {
   const m = state.metrics;
   const raw = m ? m.rawMealOut : 0, clk = m ? m.clinkerOut : 0, cem = m ? m.cementOut : 0;
   if (state.speed > 0) {
-    scroll.raw += dt * (0.00020 + raw * 0.0000050);
-    scroll.clinker += dt * (0.00020 + clk * 0.0000060);
-    scroll.cement += dt * (0.00020 + cem * 0.0000050);
-    spin.kiln += dt * (clk / 110) * 0.00045;
-    spin.rawmill += dt * (raw / 175) * 0.00110;
-    spin.cementmill += dt * (cem / 120) * 0.00110;
-    puff += dt;
+    const sp = state.speed; // Animationstempo folgt der Vorspulgeschwindigkeit
+    scroll.raw += dt * sp * (0.00020 + raw * 0.0000050);
+    scroll.clinker += dt * sp * (0.00020 + clk * 0.0000060);
+    scroll.cement += dt * sp * (0.00020 + cem * 0.0000050);
+    spin.kiln += dt * sp * (clk / 110) * 0.00045;
+    spin.rawmill += dt * sp * (raw / 175) * 0.00110;
+    spin.cementmill += dt * sp * (cem / 120) * 0.00110;
+    puff += dt * sp;
   }
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

@@ -125,14 +125,16 @@ input[type=range]::-moz-range-thumb{
 
 /* ---------- Footer ---------- */
 #controls{
-  flex:0 0 auto;display:flex;justify-content:space-between;gap:8px;
+  flex:0 0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;
   padding:7px 10px;background:var(--bg2);border-top:1px solid var(--line);
 }
 .speed,.menu{display:flex;gap:5px;}
+#menu{flex:1 1 260px;}
+#menu button{flex:1 1 0;min-width:0;}
 #controls button{
   background:var(--panel);border:1px solid var(--line);color:var(--txt);
-  border-radius:9px;padding:8px 10px;font-size:13px;font-weight:600;cursor:pointer;
-  min-width:40px;
+  border-radius:9px;padding:8px 8px;font-size:13px;font-weight:600;cursor:pointer;
+  min-width:40px;white-space:nowrap;
 }
 #controls button.active{background:var(--accent);color:#1a1206;border-color:var(--accent);}
 .menu button .badge{
@@ -158,4 +160,6 @@ input[type=range]::-moz-range-thumb{
     border-top:none;border-left:2px solid var(--accent);border-radius:0;
   }
   #money{font-size:22px;}
+  #menu{flex:0 1 auto;}
+  #menu button{flex:0 1 auto;}
 }
