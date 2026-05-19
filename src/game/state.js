@@ -6,7 +6,7 @@ export function defaultState() {
   return {
     version: 2,
     time: { tick: 0, hour: 6, day: 1 },
-    speed: 1,
+    speed: 0.4,
     money: 5_000_000,
 
     controls: {
