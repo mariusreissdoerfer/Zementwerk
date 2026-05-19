@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=8';
+import { fmt0 } from '../util.js?v=9';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -651,7 +651,9 @@ function drawCloud(cx, cy, s, alpha) {
   }
   ctx.globalAlpha = 1;
 }
-function drawSky(hour, now) {
+// bgX/bgY = Parallax-Versatz: der Himmel bewegt sich beim Schwenken mit,
+// aber nur mit einem Bruchteil des Vordergrunds.
+function drawSky(hour, now, bgX, bgY) {
   ensureStars();
   const pal = skyAt(hour);
   const g = ctx.createLinearGradient(0, 0, 0, cssH);
@@ -661,7 +663,9 @@ function drawSky(hour, now) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, cssW, cssH);
 
-  // Sterne
+  const wrap = v => ((v % cssW) + cssW) % cssW;
+
+  // Sterne (parallax, horizontal umlaufend)
   const nf = nightFactor(hour);
   if (nf > 0) {
     ctx.fillStyle = '#ffffff';
@@ -669,7 +673,7 @@ function drawSky(hour, now) {
       const tw = 0.55 + 0.45 * Math.sin(now / 600 + st.ph);
       ctx.globalAlpha = nf * tw * 0.9;
       ctx.beginPath();
-      ctx.arc(st.x * cssW, st.y * cssH, st.r, 0, 7);
+      ctx.arc(wrap(st.x * cssW + bgX), st.y * cssH + bgY, st.r, 0, 7);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -682,8 +686,8 @@ function drawSky(hour, now) {
   const sunP = (hour - 6) / 12;
   const sunAlt = Math.sin(clamp(sunP, 0, 1) * Math.PI);
   if (sunP > -0.07 && sunP < 1.07) {
-    const sx = lerp(left, right, sunP);
-    const sy = lerp(horizon, apex, Math.max(0, sunAlt));
+    const sx = lerp(left, right, sunP) + bgX;
+    const sy = lerp(horizon, apex, Math.max(0, sunAlt)) + bgY;
     const warm = clamp(1 - sunAlt * 1.7, 0, 1);
     if (warm > 0.05) {
       const hg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 220);
@@ -707,8 +711,8 @@ function drawSky(hour, now) {
   const moonP = ((((hour - 18) % 24) + 24) % 24) / 12;
   const moonAlt = Math.sin(clamp(moonP, 0, 1) * Math.PI);
   if (moonP > -0.07 && moonP < 1.07) {
-    const mx = lerp(left, right, moonP);
-    const my = lerp(horizon, apex, Math.max(0, moonAlt));
+    const mx = lerp(left, right, moonP) + bgX;
+    const my = lerp(horizon, apex, Math.max(0, moonAlt)) + bgY;
     const mg = ctx.createRadialGradient(mx, my, 0, mx, my, 48);
     mg.addColorStop(0, 'rgba(214,224,240,.55)');
     mg.addColorStop(1, 'rgba(214,224,240,0)');
@@ -722,11 +726,12 @@ function drawSky(hour, now) {
     }
   }
 
-  // Wolken (tagsüber sichtbar)
+  // Wolken (tagsüber sichtbar, parallax umlaufend)
   const dayF = clamp((hour - 5.5) / 2, 0, 1) * clamp((19.5 - hour) / 2, 0, 1);
   for (const c of CLOUDS) {
-    const cx = (((c.x + now * 0.0000022 * c.sp) % 1.25) + 1.25) % 1.25 - 0.12;
-    drawCloud(cx * cssW, c.y * cssH, c.s, dayF * 0.5);
+    const f = c.x + now * 0.0000022 * c.sp + bgX / cssW;
+    const cf = ((f % 1.3) + 1.3) % 1.3 - 0.15;
+    drawCloud(cf * cssW, c.y * cssH + bgY, c.s, dayF * 0.5);
   }
 }
 
@@ -753,7 +758,16 @@ export function drawFlowsheet(state, now, selectedId, hourFloat) {
   }
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawSky(hour, now);
+  const bgX = clamp(panX * 0.25, -cssW * 0.55, cssW * 0.55);
+  const bgY = clamp(panY * 0.25, -cssH * 0.28, cssH * 0.28);
+  drawSky(hour, now, bgX, bgY);
+
+  // Boden bis zur Unterkante des Fensters ziehen (auch beim Rauszoomen)
+  const horizonY = Math.max(0, panY + GROUND * scale);
+  if (horizonY < cssH) {
+    ctx.fillStyle = '#322d26';
+    ctx.fillRect(0, horizonY, cssW, cssH - horizonY);
+  }
 
   ctx.save();
   ctx.translate(panX, panY);
