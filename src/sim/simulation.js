@@ -4,16 +4,16 @@ import {
   clamp, normalize, blendComposition, clinkerComposition, rawMealPerClinker,
   lsf, silicaModulus, aluminaModulus, bogue, freeLime, kilnTemperature,
   specificHeat, mixNCV, blaine, strength28, electricalEnergy, processCO2, fuelCO2,
-} from './physics.js?v=16';
-import { MATERIALS } from '../data/materials.js?v=16';
-import { FUELS } from '../data/fuels.js?v=16';
-import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js?v=16';
+} from './physics.js?v=17';
+import { MATERIALS } from '../data/materials.js?v=17';
+import { FUELS } from '../data/fuels.js?v=17';
+import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js?v=17';
 import {
   ECON, rawMaterialCost, additiveCost, fuelCost, co2Cost, maintenanceCost, updateMarket,
-} from './economy.js?v=16';
-import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js?v=16';
-import { checkMissions } from '../game/scenarios.js?v=16';
-import { fmtMoney } from '../util.js?v=16';
+} from './economy.js?v=17';
+import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js?v=17';
+import { checkMissions } from '../game/scenarios.js?v=17';
+import { fmtMoney } from '../util.js?v=17';
 
 // Auslegungskapazitäten der Aggregate [t/h]
 export const CAP = { crusher: 420, rawmill: 230, kiln: 165, cementmill: 185 };
@@ -133,11 +133,12 @@ export function simulate(state) {
   state.silos.cement.level += cementOut;
 
   // --- Strom ---
-  let elec = electricalEnergy({
+  const elecB = electricalEnergy({
     rawMeal: rawMealOut, clinker: clinkerOut, cement: cementOut,
     rawMealFineness: c.rawMealFineness, cementFineness: c.cementFineness, millType: c.millType,
   });
-  if (up.whr) elec = Math.max(0, elec - clinkerOut * 0.030);
+  const whrCut = up.whr ? clinkerOut * 0.030 : 0;
+  const elec = Math.max(0, elecB.total - whrCut);
 
   // --- Versand / Verkauf ---
   const demand = state.market.demand;
@@ -159,6 +160,26 @@ export function simulate(state) {
   const costTotal = costs.raw + costs.add + costs.fuel + costs.elec
     + costs.co2 + costs.pers + costs.maint;
   state.money += revenue - costTotal;
+
+  // --- Kosten je Aggregat (für die Detailpanels) ---
+  const eP = ECON.electricity;
+  const um = id => (100 - u[id].condition) * 11;          // Wartung je Aggregat
+  const kilnElec = Math.max(0, elecB.kilnLine + elecB.misc - whrCut) * eP;
+  const unitCosts = {
+    quarry: { Rohstoffe: costs.raw },
+    crusher: { Strom: elecB.crusher * eP, Wartung: um('crusher') },
+    rawmill: { Strom: elecB.rawmill * eP, Wartung: um('rawmill') },
+    preheater: { Wartung: um('preheater') },
+    calciner: { Wartung: um('calciner') },
+    kiln: { Brennstoff: costs.fuel, 'CO₂': costs.co2, Strom: kilnElec, Wartung: um('kiln') },
+    cooler: { Strom: elecB.cooler * eP, Wartung: um('cooler') },
+    cementmill: { Strom: elecB.cementmill * eP, Zumahlstoffe: costs.add, Wartung: um('cementmill') },
+  };
+  for (const id in unitCosts) {
+    let t = 0;
+    for (const k in unitCosts[id]) t += unitCosts[id][k];
+    unitCosts[id].total = t;
+  }
 
   // --- Verschleiß ---
   const wear = (unit, a) => { unit.condition = Math.max(0, unit.condition - a); };
@@ -184,7 +205,7 @@ export function simulate(state) {
     rawMealOut, clinkerOut, cementOut, sold, demand, fuelMass,
     co2Process, co2Fuel, co2Total, elec,
     elecPerT: cementOut > 0 ? elec * 1000 / cementOut : 0,
-    unitPrice, revenue, costTotal, costs,
+    unitPrice, revenue, costTotal, costs, unitCosts,
     profitHour: revenue - costTotal,
     avail, loadFactor,
   };

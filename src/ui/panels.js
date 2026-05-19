@@ -1,10 +1,10 @@
 // Aggregat-Detailpanel mit Schiebereglern und Live-Anzeigen.
 
-import { qualityModel, CAP } from '../sim/simulation.js?v=16';
-import { repairCost } from '../game/upgrades.js?v=16';
-import { FUELS } from '../data/fuels.js?v=16';
-import { ADDITIVES } from '../data/materials.js?v=16';
-import { fmt0, fmt1, fmt2, fmtMoney, fmtInt } from '../util.js?v=16';
+import { qualityModel, CAP } from '../sim/simulation.js?v=17';
+import { repairCost } from '../game/upgrades.js?v=17';
+import { FUELS } from '../data/fuels.js?v=17';
+import { ADDITIVES } from '../data/materials.js?v=17';
+import { fmt0, fmt1, fmt2, fmtMoney, fmtInt } from '../util.js?v=17';
 
 const NAMES = {
   quarry: 'Steinbruch', crusher: 'Brecher', rawmill: 'Rohmühle', blending: 'Mischbett / Rohmehl-Silo',
@@ -140,8 +140,43 @@ function render() {
   panelEl.append(head);
 
   buildBody(id);
+  buildCosts(id);
   buildDisturbance(id);
   buildRepair(id);
+}
+
+// Kostenaufschlüsselung je Aggregat (aktualisiert sich pro Tick).
+function buildCosts(id) {
+  const init = ST.metrics && ST.metrics.unitCosts && ST.metrics.unitCosts[id];
+  if (!init) return;
+  const keys = Object.keys(init).filter(k => k !== 'total');
+  const card = E('div', 'card');
+  card.append(E('h4', null, 'Kosten je Stunde'));
+  const rbox = E('div', 'readout');
+  const spans = {};
+  for (const k of keys) {
+    const d = E('div');
+    const s = E('span');
+    spans[k] = s;
+    d.append(k + ' ', s);
+    rbox.append(d);
+  }
+  card.append(rbox);
+  const totRow = E('div', 'row');
+  const totSpan = E('span', 'tag bad');
+  totRow.append(E('h4', null, 'Summe'), totSpan);
+  card.append(totRow);
+  panelEl.append(card);
+  const r = {
+    refresh() {
+      const uc = ST.metrics && ST.metrics.unitCosts && ST.metrics.unitCosts[id];
+      if (!uc) return;
+      for (const k of keys) spans[k].textContent = fmtMoney(uc[k] || 0);
+      totSpan.textContent = fmtMoney(uc.total || 0) + '/h';
+    },
+  };
+  r.refresh();
+  readouts.push(r);
 }
 
 function buildBody(id) {

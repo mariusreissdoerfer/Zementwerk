@@ -1,8 +1,8 @@
 // Physikalisch-chemische Formeln des Zementwerks (Mix-Modell).
 // Alle Funktionen sind rein (ohne Seiteneffekte) und damit leicht testbar.
 
-import { OXIDES } from '../data/materials.js?v=16';
-import { FUELS } from '../data/fuels.js?v=16';
+import { OXIDES } from '../data/materials.js?v=17';
+import { FUELS } from '../data/fuels.js?v=17';
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -118,16 +118,21 @@ export function strength28(C3S, blaineVal, freeLimePct, clinkerFrac) {
 // Stromfaktor je Mahlaggregat-Typ (1 = Kugelmühle als Referenz).
 export const MILL_FACTOR = { ballmill: 1.0, verticalmill: 0.74, rollerpress: 0.64 };
 
-// Elektrischer Energiebedarf [kWh] für eine Stunde Betrieb.
+// Elektrischer Energiebedarf [MWh] für eine Stunde — mit Aufschlüsselung je Aggregat.
 export function electricalEnergy({ rawMeal, clinker, cement, rawMealFineness, cementFineness, millType }) {
   const mf = MILL_FACTOR[millType] || 1;         // effizientes Mahlaggregat spart Strom
-  const eRawmill = rawMeal * (14 + 12 * rawMealFineness) * mf;
-  const eCrusher = rawMeal * 1.6;
-  const eKilnLine = clinker * 26;
-  const eCooler = clinker * 5;
-  const eCementmill = cement * (26 + 24 * cementFineness) * mf;
-  const eMisc = 9 * Math.max(rawMeal, clinker, cement);
-  return (eRawmill + eCrusher + eKilnLine + eCooler + eCementmill + eMisc) / 1000; // MWh
+  const rawmill = rawMeal * (14 + 12 * rawMealFineness) * mf;
+  const crusher = rawMeal * 1.6;
+  const kilnLine = clinker * 26;
+  const cooler = clinker * 5;
+  const cementmill = cement * (26 + 24 * cementFineness) * mf;
+  const misc = 9 * Math.max(rawMeal, clinker, cement);
+  const total = rawmill + crusher + kilnLine + cooler + cementmill + misc;
+  return {
+    total: total / 1000, rawmill: rawmill / 1000, crusher: crusher / 1000,
+    kilnLine: kilnLine / 1000, cooler: cooler / 1000,
+    cementmill: cementmill / 1000, misc: misc / 1000,
+  };
 }
 
 // CO2 aus der Entsäuerung des Kalksteins [t] je Stunde.
