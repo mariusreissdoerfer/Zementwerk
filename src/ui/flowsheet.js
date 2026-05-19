@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=7';
+import { fmt0 } from '../util.js?v=8';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -731,7 +731,8 @@ function drawSky(hour, now) {
 }
 
 // ---------- Hauptfunktion ----------
-export function drawFlowsheet(state, now, selectedId) {
+export function drawFlowsheet(state, now, selectedId, hourFloat) {
+  const hour = hourFloat ?? state.time.hour;
   if (!ctx) return;
   clampView();
 
@@ -752,7 +753,7 @@ export function drawFlowsheet(state, now, selectedId) {
   }
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawSky(state.time.hour, now);
+  drawSky(hour, now);
 
   ctx.save();
   ctx.translate(panX, panY);
@@ -803,7 +804,7 @@ export function drawFlowsheet(state, now, selectedId) {
   ctx.restore();
 
   // Nachtschleier — dunkelt das Werk in der Nacht ab
-  const nf = nightFactor(state.time.hour);
+  const nf = nightFactor(hour);
   if (nf > 0) {
     ctx.fillStyle = `rgba(8,12,28,${nf * 0.34})`;
     ctx.fillRect(0, 0, cssW, cssH);
