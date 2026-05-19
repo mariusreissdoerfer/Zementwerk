@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=4';
+import { fmt0 } from '../util.js?v=5';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -95,6 +95,12 @@ export function initFlowsheet(cv, selectCb) {
     const r = canvas.getBoundingClientRect();
     zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.14 : 0.88);
   }, { passive: false });
+
+  // Browser-eigenes Pinch-Zoom/Scrollen im Schaubild unterbinden (v.a. iOS Safari)
+  cv.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  cv.addEventListener('gesturestart', e => e.preventDefault());
+  cv.addEventListener('gesturechange', e => e.preventDefault());
+  cv.addEventListener('gestureend', e => e.preventDefault());
 }
 
 function pointAt(e) {

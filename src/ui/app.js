@@ -1,13 +1,13 @@
 // Verdrahtung: Spiel-Loop, Footer-Steuerung, Modals, Canvas-Eingabe.
 
-import { simulate, qualityModel } from '../sim/simulation.js?v=4';
-import { initFlowsheet, drawFlowsheet } from './flowsheet.js?v=4';
-import { initPanels, openPanel, closePanel, currentPanelUnit, refreshPanel } from './panels.js?v=4';
-import { initHud, updateHud, toast, openModal } from './hud.js?v=4';
-import { MISSIONS } from '../game/scenarios.js?v=4';
-import { UPGRADES, buyUpgrade } from '../game/upgrades.js?v=4';
-import { saveState, clearSave } from '../game/state.js?v=4';
-import { fmtMoney, fmt0 } from '../util.js?v=4';
+import { simulate, qualityModel } from '../sim/simulation.js?v=5';
+import { initFlowsheet, drawFlowsheet } from './flowsheet.js?v=5';
+import { initPanels, openPanel, closePanel, currentPanelUnit, refreshPanel } from './panels.js?v=5';
+import { initHud, updateHud, toast, openModal } from './hud.js?v=5';
+import { MISSIONS } from '../game/scenarios.js?v=5';
+import { UPGRADES, buyUpgrade } from '../game/upgrades.js?v=5';
+import { saveState, clearSave } from '../game/state.js?v=5';
+import { fmtMoney, fmt0 } from '../util.js?v=5';
 
 const TICK_MS = 850;
 let state, last = 0, acc = 0, tickCount = 0, saveTimer = null;
