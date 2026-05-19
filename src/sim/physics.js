@@ -1,8 +1,8 @@
 // Physikalisch-chemische Formeln des Zementwerks (Mix-Modell).
 // Alle Funktionen sind rein (ohne Seiteneffekte) und damit leicht testbar.
 
-import { OXIDES } from '../data/materials.js?v=11';
-import { FUELS } from '../data/fuels.js?v=11';
+import { OXIDES } from '../data/materials.js?v=12';
+import { FUELS } from '../data/fuels.js?v=12';
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 

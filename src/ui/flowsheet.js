@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=11';
+import { fmt0 } from '../util.js?v=12';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -167,9 +167,10 @@ function zoomAt(cx, cy, f) {
 function zoomBtnHit(clientX, clientY) {
   const r = canvas.getBoundingClientRect();
   const x = clientX - r.left, y = clientY - r.top;
+  const pad = 8; // großzügigere Trefferfläche als die sichtbare Taste
   for (const k of ['in', 'out']) {
     const [bx, by, s] = zoomBtn[k];
-    if (x >= bx && x <= bx + s && y >= by && y <= by + s) return k;
+    if (x >= bx - pad && x <= bx + s + pad && y >= by - pad && y <= by + s + pad) return k;
   }
   return null;
 }
@@ -689,23 +690,23 @@ function drawUpgradeTags(id, state) {
 }
 
 function drawZoomButtons() {
-  const s = 42, mg = 12;
-  const bx = cssW - mg - s;
-  zoomBtn.in = [bx, cssH - mg - s * 2 - 8, s];
-  zoomBtn.out = [bx, cssH - mg - s, s];
+  const s = 56, mgR = 14, mgB = 30, gap = 16;
+  const bx = cssW - mgR - s;
+  zoomBtn.in = [bx, cssH - mgB - s * 2 - gap, s];
+  zoomBtn.out = [bx, cssH - mgB - s, s];
   for (const [k, sym] of [['in', '+'], ['out', '−']]) {
     const [x, y] = zoomBtn[k];
-    ctx.fillStyle = 'rgba(29,42,57,.92)';
-    ctx.strokeStyle = '#5b6b7e';
-    ctx.lineWidth = 2;
-    rr(x, y, s, s, 10);
+    ctx.fillStyle = 'rgba(29,42,57,.94)';
+    ctx.strokeStyle = '#6a7c90';
+    ctx.lineWidth = 2.5;
+    rr(x, y, s, s, 12);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = '#dfe8f2';
-    ctx.font = '700 24px Segoe UI, sans-serif';
+    ctx.font = '700 30px Segoe UI, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(sym, x + s / 2, y + s / 2 + 1);
+    ctx.fillText(sym, x + s / 2, y + s / 2 + 2);
   }
   ctx.textBaseline = 'alphabetic';
 }
