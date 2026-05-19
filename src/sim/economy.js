@@ -1,8 +1,8 @@
 // Wirtschaftsmodell: Kosten, Erlöse, Markt und CO2-Zertifikate.
 
-import { MATERIALS, ADDITIVES } from '../data/materials.js';
-import { FUELS } from '../data/fuels.js';
-import { clamp } from './physics.js';
+import { MATERIALS, ADDITIVES } from '../data/materials.js?v=3';
+import { FUELS } from '../data/fuels.js?v=3';
+import { clamp } from './physics.js?v=3';
 
 export const ECON = {
   electricity: 95,        // €/MWh

@@ -4,16 +4,16 @@ import {
   clamp, normalize, blendComposition, clinkerComposition, rawMealPerClinker,
   lsf, silicaModulus, aluminaModulus, bogue, freeLime, kilnTemperature,
   specificHeat, mixNCV, blaine, strength28, electricalEnergy, processCO2, fuelCO2,
-} from './physics.js';
-import { MATERIALS } from '../data/materials.js';
-import { FUELS } from '../data/fuels.js';
-import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js';
+} from './physics.js?v=3';
+import { MATERIALS } from '../data/materials.js?v=3';
+import { FUELS } from '../data/fuels.js?v=3';
+import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js?v=3';
 import {
   ECON, rawMaterialCost, additiveCost, fuelCost, co2Cost, maintenanceCost, updateMarket,
-} from './economy.js';
-import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js';
-import { checkMissions } from '../game/scenarios.js';
-import { fmtMoney } from '../util.js';
+} from './economy.js?v=3';
+import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js?v=3';
+import { checkMissions } from '../game/scenarios.js?v=3';
+import { fmtMoney } from '../util.js?v=3';
 
 // Auslegungskapazitäten der Aggregate [t/h]
 export const CAP = { crusher: 420, rawmill: 230, kiln: 165, cementmill: 185 };

@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Schwenkbar (Pan), antippbare Aggregate, animierte Stoffströme.
 
-import { fmt0 } from '../util.js';
+import { fmt0 } from '../util.js?v=3';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
