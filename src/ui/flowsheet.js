@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=12';
+import { fmt0 } from '../util.js?v=13';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -139,10 +139,10 @@ function refreshGesture() {
 function resize() {
   dpr = window.devicePixelRatio || 1;
   const r = canvas.getBoundingClientRect();
-  cssW = Math.max(320, r.width);
-  cssH = Math.max(240, r.height);
-  canvas.width = cssW * dpr;
-  canvas.height = cssH * dpr;
+  cssW = Math.max(1, r.width);
+  cssH = Math.max(1, r.height);
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
   clampView();
 }
 
@@ -845,6 +845,11 @@ function drawSky(hour, now, bgX, bgY) {
 export function drawFlowsheet(state, now, selectedId, hourFloat) {
   const hour = hourFloat ?? state.time.hour;
   if (!ctx) return;
+  // Canvas-Größe laufend mit dem echten Layout abgleichen — HUD-Alarmzeile,
+  // iOS-Adressleiste u. Ä. ändern die Höhe ohne resize-Event, was sonst die
+  // Touch-Umrechnung verschiebt.
+  const cr = canvas.getBoundingClientRect();
+  if (Math.abs(cr.width - cssW) > 0.5 || Math.abs(cr.height - cssH) > 0.5) resize();
   clampView();
 
   // Animationszeit nur fortschreiben, wenn das Spiel läuft
