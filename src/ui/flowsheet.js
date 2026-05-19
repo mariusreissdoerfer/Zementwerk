@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=17';
+import { fmt0, fmtMoney } from '../util.js?v=18';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -847,6 +847,13 @@ function drawLabel(id, state, m) {
     ctx.fillStyle = '#9fb0c2';
     ctx.font = '14px Segoe UI, sans-serif';
     ctx.fillText(sl, cx, ly + 31);
+  }
+  // Kostensumme des Aggregats
+  const uc = m && m.unitCosts && m.unitCosts[id];
+  if (uc) {
+    ctx.fillStyle = '#ff8f86';
+    ctx.font = '600 13px Segoe UI, sans-serif';
+    ctx.fillText('−' + fmtMoney(uc.total) + '/h', cx, ly + (sl ? 48 : 31));
   }
 }
 function drawStatus(id, state, m, selected) {
