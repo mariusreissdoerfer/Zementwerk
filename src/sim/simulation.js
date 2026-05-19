@@ -4,16 +4,16 @@ import {
   clamp, normalize, blendComposition, clinkerComposition, rawMealPerClinker,
   lsf, silicaModulus, aluminaModulus, bogue, freeLime, kilnTemperature,
   specificHeat, mixNCV, blaine, strength28, electricalEnergy, processCO2, fuelCO2,
-} from './physics.js?v=19';
-import { MATERIALS } from '../data/materials.js?v=19';
-import { FUELS } from '../data/fuels.js?v=19';
-import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js?v=19';
+} from './physics.js?v=20';
+import { MATERIALS } from '../data/materials.js?v=20';
+import { FUELS } from '../data/fuels.js?v=20';
+import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js?v=20';
 import {
   ECON, rawMaterialCost, additiveCost, fuelCost, co2Cost, maintenanceCost, updateMarket,
-} from './economy.js?v=19';
-import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js?v=19';
-import { checkMissions } from '../game/scenarios.js?v=19';
-import { fmtMoney } from '../util.js?v=19';
+} from './economy.js?v=20';
+import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js?v=20';
+import { checkMissions } from '../game/scenarios.js?v=20';
+import { fmtMoney } from '../util.js?v=20';
 
 // Auslegungskapazitäten der Aggregate [t/h]
 export const CAP = { crusher: 420, rawmill: 230, kiln: 165, cementmill: 185 };
@@ -178,9 +178,14 @@ export function simulate(state) {
   };
   for (const id in unitCosts) {
     let t = 0;
-    for (const k in unitCosts[id]) t += unitCosts[id][k];
+    for (const k in unitCosts[id]) {
+      if (k !== 'total' && k !== 'revenue' && k !== 'net') t += unitCosts[id][k];
+    }
     unitCosts[id].total = t;
   }
+  // Der Versand erwirtschaftet den Erlös — Geldfluss dort positiv.
+  unitCosts.dispatch.revenue = revenue;
+  unitCosts.dispatch.net = revenue - unitCosts.dispatch.total;
 
   // --- Verschleiß ---
   const wear = (unit, a) => { unit.condition = Math.max(0, unit.condition - a); };

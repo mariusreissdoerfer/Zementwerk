@@ -1,10 +1,10 @@
 // Aggregat-Detailpanel mit Schiebereglern und Live-Anzeigen.
 
-import { qualityModel, CAP } from '../sim/simulation.js?v=19';
-import { repairCost } from '../game/upgrades.js?v=19';
-import { FUELS } from '../data/fuels.js?v=19';
-import { ADDITIVES } from '../data/materials.js?v=19';
-import { fmt0, fmt1, fmt2, fmtMoney, fmtInt } from '../util.js?v=19';
+import { qualityModel, CAP } from '../sim/simulation.js?v=20';
+import { repairCost } from '../game/upgrades.js?v=20';
+import { FUELS } from '../data/fuels.js?v=20';
+import { ADDITIVES } from '../data/materials.js?v=20';
+import { fmt0, fmt1, fmt2, fmtMoney, fmtInt } from '../util.js?v=20';
 
 const NAMES = {
   quarry: 'Steinbruch', crusher: 'Brecher', rawmill: 'Rohmühle', blending: 'Mischbett / Rohmehl-Silo',
@@ -145,15 +145,23 @@ function render() {
   buildRepair(id);
 }
 
-// Kostenaufschlüsselung je Aggregat (aktualisiert sich pro Tick).
+// Kosten- bzw. Geldfluss-Aufschlüsselung je Aggregat (aktualisiert sich pro Tick).
 function buildCosts(id) {
   const init = ST.metrics && ST.metrics.unitCosts && ST.metrics.unitCosts[id];
   if (!init) return;
-  const keys = Object.keys(init).filter(k => k !== 'total');
+  const hasRev = init.revenue !== undefined;
+  const keys = Object.keys(init).filter(k => !['total', 'revenue', 'net'].includes(k));
   const card = E('div', 'card');
-  card.append(E('h4', null, 'Kosten je Stunde'));
+  card.append(E('h4', null, hasRev ? 'Geldfluss je Stunde' : 'Kosten je Stunde'));
   const rbox = E('div', 'readout');
   const spans = {};
+  if (hasRev) {
+    const d = E('div');
+    const s = E('span');
+    spans.__rev = s;
+    d.append('Erlös ', s);
+    rbox.append(d);
+  }
   for (const k of keys) {
     const d = E('div');
     const s = E('span');
@@ -163,16 +171,24 @@ function buildCosts(id) {
   }
   card.append(rbox);
   const totRow = E('div', 'row');
-  const totSpan = E('span', 'tag bad');
-  totRow.append(E('h4', null, 'Summe'), totSpan);
+  const totSpan = E('span', 'tag');
+  totRow.append(E('h4', null, hasRev ? 'Saldo' : 'Summe'), totSpan);
   card.append(totRow);
   panelEl.append(card);
   const r = {
     refresh() {
       const uc = ST.metrics && ST.metrics.unitCosts && ST.metrics.unitCosts[id];
       if (!uc) return;
-      for (const k of keys) spans[k].textContent = fmtMoney(uc[k] || 0);
-      totSpan.textContent = fmtMoney(uc.total || 0) + '/h';
+      if (hasRev) spans.__rev.textContent = '+' + fmtMoney(uc.revenue || 0);
+      for (const k of keys) spans[k].textContent = (hasRev ? '−' : '') + fmtMoney(uc[k] || 0);
+      if (hasRev) {
+        const net = uc.net || 0;
+        totSpan.textContent = (net >= 0 ? '+' : '−') + fmtMoney(Math.abs(net)) + '/h';
+        totSpan.className = 'tag ' + (net >= 0 ? 'ok' : 'bad');
+      } else {
+        totSpan.textContent = '−' + fmtMoney(uc.total || 0) + '/h';
+        totSpan.className = 'tag bad';
+      }
     },
   };
   r.refresh();
