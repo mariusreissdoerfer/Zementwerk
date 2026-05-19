@@ -4,16 +4,16 @@ import {
   clamp, normalize, blendComposition, clinkerComposition, rawMealPerClinker,
   lsf, silicaModulus, aluminaModulus, bogue, freeLime, kilnTemperature,
   specificHeat, mixNCV, blaine, strength28, electricalEnergy, processCO2, fuelCO2,
-} from './physics.js?v=3';
-import { MATERIALS } from '../data/materials.js?v=3';
-import { FUELS } from '../data/fuels.js?v=3';
-import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js?v=3';
+} from './physics.js?v=4';
+import { MATERIALS } from '../data/materials.js?v=4';
+import { FUELS } from '../data/fuels.js?v=4';
+import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js?v=4';
 import {
   ECON, rawMaterialCost, additiveCost, fuelCost, co2Cost, maintenanceCost, updateMarket,
-} from './economy.js?v=3';
-import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js?v=3';
-import { checkMissions } from '../game/scenarios.js?v=3';
-import { fmtMoney } from '../util.js?v=3';
+} from './economy.js?v=4';
+import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js?v=4';
+import { checkMissions } from '../game/scenarios.js?v=4';
+import { fmtMoney } from '../util.js?v=4';
 
 // Auslegungskapazitäten der Aggregate [t/h]
 export const CAP = { crusher: 420, rawmill: 230, kiln: 165, cementmill: 185 };

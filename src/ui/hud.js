@@ -1,6 +1,6 @@
 // Kopfzeile (KPIs, Uhr, Geld, Alarme), Toasts und generischer Modal-Dialog.
 
-import { fmt0, fmtMoney } from '../util.js?v=3';
+import { fmt0, fmtMoney } from '../util.js?v=4';
 
 let elClock, elMoney, elProfit, elKpis, elAlarm, elModal, elToast;
 let toastTimer = null;
