@@ -1,7 +1,7 @@
 // Realistische, gezeichnete Werksansicht (Seitenelevation) auf Canvas.
 // Zoom- & schwenkbar; Animation an Mengen, Drehzahl, Temperatur & CO2 gekoppelt.
 
-import { fmt0 } from '../util.js?v=14';
+import { fmt0 } from '../util.js?v=15';
 
 const SCENE_W = 2260, SCENE_H = 560, GROUND = 460;
 const OUTLINE = '#0d131b';
@@ -225,69 +225,150 @@ function smoke(x, y, clock, col, intensity) {
   }
   ctx.globalAlpha = 1;
 }
-// Förderband — flow steuert Partikelanzahl, scrollVal die Bewegung.
+// Bodenschatten unter einem Aggregat.
+function shadow(cx, halfW) {
+  ctx.fillStyle = 'rgba(0,0,0,.26)';
+  ctx.beginPath();
+  ctx.ellipse(cx, GROUND + 3, halfW, 9, 0, 0, 7);
+  ctx.fill();
+}
+// Senkrechte Steigleiter.
+function ladder(lx, y0, y1) {
+  ctx.strokeStyle = '#39434f';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(lx, y0); ctx.lineTo(lx, y1);
+  ctx.moveTo(lx + 7, y0); ctx.lineTo(lx + 7, y1);
+  ctx.stroke();
+  ctx.lineWidth = 1.5;
+  for (let yy = y0 + 7; yy < y1; yy += 11) {
+    ctx.beginPath(); ctx.moveTo(lx, yy); ctx.lineTo(lx + 7, yy); ctx.stroke();
+  }
+}
+// Handlauf-Geländer.
+function railing(rx, ry, rw) {
+  ctx.strokeStyle = '#7a8896';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(rx, ry - 10); ctx.lineTo(rx + rw, ry - 10); ctx.stroke();
+  for (let xx = rx; xx <= rx + rw; xx += 13) {
+    ctx.beginPath(); ctx.moveTo(xx, ry - 10); ctx.lineTo(xx, ry); ctx.stroke();
+  }
+}
+
+// Förderbrücke (eingehauste Galerie) — flow steuert Partikelmenge, scrollVal die Bewegung.
 function belt(x0, y0, x1, y1, flow, color, scrollVal) {
   const ang = Math.atan2(y1 - y0, x1 - x0);
   const len = Math.hypot(x1 - x0, y1 - y0);
   ctx.save();
   ctx.translate(x0, y0);
   ctx.rotate(ang);
-  ctx.fillStyle = '#2b3543';
-  ctx.fillRect(0, -9, len, 18);
-  ctx.strokeStyle = OUTLINE;
-  ctx.lineWidth = 2.2;
-  ctx.strokeRect(0, -9, len, 18);
-  ctx.fillStyle = '#5c6776';
-  for (const px of [0, len]) {
+  const gh = 22;
+  const g = ctx.createLinearGradient(0, -gh / 2, 0, gh / 2);
+  g.addColorStop(0, '#4b5663'); g.addColorStop(0.5, '#3a434f'); g.addColorStop(1, '#2a323d');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, -gh / 2, len, gh);
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.2;
+  ctx.strokeRect(0, -gh / 2, len, gh);
+  // Fachwerk-Andeutung
+  ctx.strokeStyle = 'rgba(13,19,27,.42)'; ctx.lineWidth = 1.5;
+  for (let sx = 6; sx < len - 12; sx += 26) {
     ctx.beginPath();
-    ctx.arc(px, 0, 11, 0, 7);
-    ctx.fill();
+    ctx.moveTo(sx, -gh / 2 + 2); ctx.lineTo(sx + 13, gh / 2 - 2);
+    ctx.moveTo(sx + 13, -gh / 2 + 2); ctx.lineTo(sx, gh / 2 - 2);
     ctx.stroke();
   }
-  const n = Math.min(8, Math.round(flow / 14));
+  // Materialfluss
+  const n = Math.min(9, Math.round(flow / 13));
   ctx.fillStyle = color;
   for (let k = 0; k < n; k++) {
     const t = ((scrollVal + k / n) % 1 + 1) % 1;
     ctx.beginPath();
-    ctx.arc(8 + t * (len - 16), -3, 4.6, 0, 7);
+    ctx.arc(10 + t * (len - 20), 3, 4, 0, 7);
     ctx.fill();
+  }
+  // Antriebstrommeln
+  ctx.fillStyle = '#5c6776';
+  for (const px of [3, len - 3]) {
+    ctx.beginPath(); ctx.arc(px, 0, 9, 0, 7); ctx.fill();
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2; ctx.stroke();
   }
   ctx.restore();
 }
 
 // ---------- Aggregate ----------
 function drawQuarry() {
-  ctx.fillStyle = '#6f6450';
+  // Felsmassiv mit Abbauterrassen
+  const grd = ctx.createLinearGradient(0, 110, 0, GROUND);
+  grd.addColorStop(0, '#7e7259'); grd.addColorStop(1, '#5b5240');
+  ctx.fillStyle = grd;
   ctx.beginPath();
-  ctx.moveTo(20, GROUND);
-  ctx.lineTo(40, 300); ctx.lineTo(110, 250); ctx.lineTo(130, 170);
-  ctx.lineTo(210, 130); ctx.lineTo(260, 210); ctx.lineTo(285, GROUND);
+  ctx.moveTo(18, GROUND);
+  ctx.lineTo(34, 322); ctx.lineTo(74, 304); ctx.lineTo(96, 252);
+  ctx.lineTo(124, 234); ctx.lineTo(142, 168); ctx.lineTo(208, 132);
+  ctx.lineTo(240, 198); ctx.lineTo(266, 214); ctx.lineTo(290, GROUND);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.6; ctx.stroke();
-  ctx.strokeStyle = '#564d3d'; ctx.lineWidth = 3;
-  for (const [ax, ay, bx, by] of [[48, 320, 150, 290], [120, 250, 235, 215], [150, 195, 220, 168]]) {
+  // Terrassenkanten
+  ctx.strokeStyle = '#4a4233'; ctx.lineWidth = 3;
+  for (const [ax, ay, bx, by] of [[40, 322, 92, 304], [78, 300, 158, 280],
+    [100, 252, 214, 226], [142, 196, 248, 178], [150, 150, 224, 142]]) {
     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
   }
-  box(150, 250, 34, 20, '#e0a93b');
-  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.4;
-  ctx.beginPath(); ctx.moveTo(184, 256); ctx.lineTo(214, 240); ctx.stroke();
+  // Schattenflanke rechts
+  ctx.fillStyle = 'rgba(0,0,0,.17)';
+  ctx.beginPath();
+  ctx.moveTo(208, 132); ctx.lineTo(240, 198); ctx.lineTo(266, 214);
+  ctx.lineTo(290, GROUND); ctx.lineTo(250, GROUND); ctx.closePath();
+  ctx.fill();
+  // Schutthaufen
+  ctx.fillStyle = '#6c6149';
+  for (const [rx, rw] of [[58, 13], [98, 9], [254, 11]]) {
+    ctx.beginPath(); ctx.arc(rx, GROUND, rw, Math.PI, 0); ctx.fill();
+  }
+  // Muldenkipper
+  const tx = 150, ty = 300;
+  ctx.fillStyle = '#e0a93b';
+  ctx.beginPath();
+  ctx.moveTo(tx, ty); ctx.lineTo(tx + 42, ty); ctx.lineTo(tx + 36, ty - 15);
+  ctx.lineTo(tx + 12, ty - 15); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 1.8; ctx.stroke();
+  box(tx - 12, ty - 13, 14, 13, '#caa235');
+  ctx.fillStyle = '#1d2733';
+  ctx.beginPath(); ctx.arc(tx - 4, ty + 2, 6, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(tx + 28, ty + 2, 6, 0, 7); ctx.fill();
 }
 function drawCrusher() {
   const [x, y, w, h] = HIT.crusher;
-  ctx.fillStyle = '#7f8b99';
+  shadow(x + w / 2, w / 2 + 4);
+  // Aufgabetrichter
+  ctx.fillStyle = '#8c98a6';
   ctx.beginPath();
-  ctx.moveTo(x + 6, y); ctx.lineTo(x + w - 6, y);
-  ctx.lineTo(x + w - 34, y + 40); ctx.lineTo(x + 34, y + 40);
+  ctx.moveTo(x + 12, y + 6); ctx.lineTo(x + w - 12, y + 6);
+  ctx.lineTo(x + w - 40, y + 42); ctx.lineTo(x + 40, y + 42);
   ctx.closePath(); ctx.fill();
   ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.4; ctx.stroke();
-  box(x + 20, y + 40, w - 40, h - 40, '#69737f');
-  box(x + w - 30, y + h - 54, 26, 30, '#4f5965');
+  // Gehäuse mit Wellblech
+  const bx = x + 18, bw = w - 36, by = y + 42, bh = y + h - by;
+  const g = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+  g.addColorStop(0, '#7a8490'); g.addColorStop(1, '#586470');
+  ctx.fillStyle = g;
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.4; ctx.strokeRect(bx, by, bw, bh);
+  ctx.strokeStyle = 'rgba(13,19,27,.3)'; ctx.lineWidth = 1.4;
+  for (let xx = bx + 9; xx < bx + bw; xx += 13) {
+    ctx.beginPath(); ctx.moveTo(xx, by + 2); ctx.lineTo(xx, by + bh - 2); ctx.stroke();
+  }
+  box(x + w - 30, y + h - 52, 24, 28, '#49525d'); // Antrieb
+  ladder(bx + 5, by + 6, by + bh);
 }
 // Mahlaggregat — Darstellung je nach gewähltem Typ.
 function drawMill(id, accent, spinVal, type) {
   const [x, y, w, h] = HIT[id];
+  shadow(x + w / 2, w / 2 + 4);
   box(x + 10, y + h - 30, w - 20, 30, '#4a5460'); // Fundament
+  ctx.strokeStyle = 'rgba(255,255,255,.10)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x + 12, y + h - 28); ctx.lineTo(x + w - 12, y + h - 28); ctx.stroke();
 
   if (type === 'verticalmill') {
     // Vertikalmühle: stehendes Trapezgehäuse mit Klassierer und Mahlteller
@@ -376,46 +457,89 @@ function drawMill(id, accent, spinVal, type) {
 }
 function drawSilo(R, id, c1, c2, matCol) {
   const [x, y, w, h] = HIT[id];
-  const bodyTop = y + 34;
-  ctx.fillStyle = c2;
-  ctx.beginPath();
-  ctx.moveTo(x, bodyTop); ctx.lineTo(x + w / 2, y); ctx.lineTo(x + w, bodyTop);
-  ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.4; ctx.stroke();
-  vcyl(x, bodyTop, w, h - 34, c1, c2);
+  shadow(x + w / 2, w / 2 + 6);
+  const bodyTop = y + 20, skirtH = 20;
+  const bodyBot = y + h - skirtH;
+  const bodyH = bodyBot - bodyTop;
+  box(x + 6, bodyBot, w - 12, skirtH, '#4d5762'); // Stützsockel
+  vcyl(x, bodyTop, w, bodyH, c1, c2);
+  // Füllstand
   const key = SILOKEY[id];
   if (key && R.state.silos[key]) {
     const f = clamp(R.state.silos[key].level / R.state.silos[key].cap, 0, 1);
-    const fh = (h - 40) * f;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x + 3, bodyTop + bodyH * (1 - f), w - 6, bodyH * f);
+    ctx.clip();
+    ctx.globalAlpha = 0.8;
     ctx.fillStyle = matCol;
-    ctx.globalAlpha = 0.85;
-    ctx.fillRect(x + 4, bodyTop + (h - 40) - fh + 6, w - 8, fh);
+    ctx.fillRect(x + 3, bodyTop, w - 6, bodyH);
     ctx.globalAlpha = 1;
+    ctx.restore();
   }
+  // Konstruktionsringe
+  ctx.strokeStyle = 'rgba(13,19,27,.2)'; ctx.lineWidth = 1.5;
+  for (let yy = bodyTop + 28; yy < bodyBot - 4; yy += 32) {
+    ctx.beginPath(); ctx.moveTo(x + 1, yy); ctx.lineTo(x + w - 1, yy); ctx.stroke();
+  }
+  // flach gewölbtes Dach
+  ctx.fillStyle = c1;
+  ctx.beginPath();
+  ctx.moveTo(x - 1, bodyTop + 2);
+  ctx.quadraticCurveTo(x + w / 2, y - 12, x + w + 1, bodyTop + 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.4; ctx.stroke();
+  box(x + w / 2 - 13, y - 22, 26, 14, '#6b7682'); // Kopfhaus
+  ladder(x + w - 13, bodyTop + 8, bodyBot);
 }
 function drawPreheater(R) {
   const [x, y, w, h] = HIT.preheater;
-  ctx.fillStyle = '#5d6772';
-  ctx.fillRect(x + w - 60, y + 6, 56, h - 6);
-  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.6;
-  ctx.strokeRect(x + w - 60, y + 6, 56, h - 6);
-  ctx.strokeStyle = '#454e58'; ctx.lineWidth = 3;
-  for (let k = 1; k < 6; k++) {
-    const fy = y + 6 + (h - 6) * k / 6;
-    ctx.beginPath(); ctx.moveTo(x + w - 60, fy); ctx.lineTo(x + w - 4, fy); ctx.stroke();
+  shadow(x + w / 2 + 8, w / 2);
+  // Treppenturm links
+  const stW = 24;
+  box(x, y + 40, stW, h - 40, '#586470');
+  ctx.strokeStyle = 'rgba(13,19,27,.45)'; ctx.lineWidth = 1.6;
+  for (let yy = y + 50; yy < y + h - 6; yy += 16) {
+    ctx.beginPath(); ctx.moveTo(x + 2, yy); ctx.lineTo(x + stW - 2, yy + 9); ctx.stroke();
   }
+  // Betonturm
+  const tx = x + stW + 4, tw = w - stW - 4;
+  const g = ctx.createLinearGradient(tx, 0, tx + tw, 0);
+  g.addColorStop(0, '#808a95'); g.addColorStop(0.5, '#6b7681'); g.addColorStop(1, '#525c67');
+  ctx.fillStyle = g;
+  ctx.fillRect(tx, y + 14, tw, h - 14);
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.6;
+  ctx.strokeRect(tx, y + 14, tw, h - 14);
+  // Etagen
+  ctx.strokeStyle = 'rgba(13,19,27,.3)'; ctx.lineWidth = 2;
+  for (let k = 1; k < 7; k++) {
+    const fy = y + 14 + (h - 14) * k / 7;
+    ctx.beginPath(); ctx.moveTo(tx, fy); ctx.lineTo(tx + tw, fy); ctx.stroke();
+  }
+  // Fenster
+  ctx.fillStyle = 'rgba(20,28,38,.5)';
+  for (let r = 0; r < 6; r++) {
+    ctx.fillRect(tx + tw - 26, y + 26 + r * (h - 14) / 7, 15, 13);
+  }
+  // Zyklone (Anzahl = Vorwärmerstufen)
   const n = R.state.upgrades.preheaterStages;
-  const top = y + 10, bot = y + h - 70;
-  const ch = (bot - top) / n;
-  const cw = w - 86, cx = x + 4;
+  const cw = tw - 30, cx = tx + 6;
+  const cTop = y + 20, cBot = y + h - 66;
+  const ch = (cBot - cTop) / n;
   for (let k = 0; k < n; k++) {
-    const cy = top + k * ch;
-    vcyl(cx, cy, cw, ch * 0.55, '#aeb7c2', '#7c8590');
-    ctx.fillStyle = '#9aa4b0';
+    const cy = cTop + k * ch;
+    ctx.strokeStyle = '#7c8590'; ctx.lineWidth = 6; // Steigleitung
     ctx.beginPath();
-    ctx.moveTo(cx, cy + ch * 0.55);
-    ctx.lineTo(cx + cw, cy + ch * 0.55);
-    ctx.lineTo(cx + cw / 2, cy + ch - 4);
+    ctx.moveTo(cx + cw - 6, cy + ch - 8);
+    ctx.lineTo(cx + cw + 9, cy + ch * 0.28);
+    ctx.stroke();
+    vcyl(cx, cy, cw, ch * 0.46, '#c2cad3', '#8c95a0');
+    ctx.fillStyle = '#aab3bd';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + ch * 0.46);
+    ctx.lineTo(cx + cw, cy + ch * 0.46);
+    ctx.lineTo(cx + cw / 2, cy + ch - 3);
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.2; ctx.stroke();
@@ -427,29 +551,38 @@ function drawPreheater(R) {
   for (let k = 0; k < dots; k++) {
     const t = ((R.scroll.raw * 1.4 + k / dots) % 1 + 1) % 1;
     ctx.beginPath();
-    ctx.arc(cx + cw / 2 + Math.sin(k * 2) * 8, top + t * (bot - top), 3.4, 0, 7);
+    ctx.arc(cx + cw / 2 + Math.sin(k * 2) * 8, cTop + t * (cBot - cTop), 3.4, 0, 7);
     ctx.fill();
   }
-  box(x + 8, y - 4, 26, 16, '#4f5965');
+  railing(tx + 4, y + 14, tw - 8);
+  box(x + w / 2 - 9, y - 28, 20, 42, '#566069'); // Gasabzug / Kamin
   const co2 = R.m ? R.m.co2PerClinker : 700;
-  smoke(x + 21, y - 4, R.puff, smokeColor(co2), 0.35 + act * 0.55);
+  smoke(x + w / 2 + 1, y - 28, R.puff, smokeColor(co2), 0.35 + act * 0.55);
 }
 function drawCalciner(R) {
   const [x, y, w, h] = HIT.calciner;
-  vcyl(x + 10, y, w - 20, h - 30, '#9aa4b0', '#6c7681');
+  vcyl(x + 12, y, w - 24, h - 46, '#a6b0bb', '#6c7681');
+  // Kegelkopf
   ctx.fillStyle = '#9aa4b0';
   ctx.beginPath();
-  ctx.moveTo(x + 10, y); ctx.lineTo(x + w - 10, y);
+  ctx.moveTo(x + 12, y); ctx.lineTo(x + w - 12, y);
   ctx.lineTo(x + w / 2, y - 22); ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.2; ctx.stroke();
+  // konischer Auslauf
+  ctx.fillStyle = '#7c8590';
+  ctx.beginPath();
+  ctx.moveTo(x + 12, y + h - 46); ctx.lineTo(x + w - 12, y + h - 46);
+  ctx.lineTo(x + w / 2 + 7, y + h - 16); ctx.lineTo(x + w / 2 - 7, y + h - 16);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2; ctx.stroke();
   // Brenner — pulsiert mit Brennintensität
   const bi = R.state.controls.burningIntensity;
   const on = R.clk > 0 ? 1 : 0;
-  const pr = (6 + bi * 5) * on * (0.8 + 0.2 * Math.sin(R.puff / 130));
-  ctx.fillStyle = '#ff8430';
+  const pr = (5 + bi * 6) * on * (0.8 + 0.2 * Math.sin(R.puff / 130));
+  ctx.fillStyle = '#ffa238';
   ctx.beginPath();
-  ctx.arc(x + w - 6, y + h - 50, Math.max(0.1, pr), 0, 7);
+  ctx.arc(x + w - 8, y + h - 62, Math.max(0.1, pr), 0, 7);
   ctx.fill();
 }
 function drawKiln(R) {
@@ -468,6 +601,19 @@ function drawKiln(R) {
   gl.addColorStop(1, 'rgba(255,150,50,0)');
   ctx.fillStyle = gl;
   ctx.fillRect(x1 - 160, y1 - 160, 320, 230);
+
+  // Stützpfeiler unter den Laufringen
+  for (const f of [0.26, 0.72]) {
+    const wx = x0 + (x1 - x0) * f;
+    const wy = y0 + (y1 - y0) * f;
+    ctx.fillStyle = '#5b6571';
+    ctx.beginPath();
+    ctx.moveTo(wx - 15, wy + 20); ctx.lineTo(wx + 15, wy + 20);
+    ctx.lineTo(wx + 24, GROUND); ctx.lineTo(wx - 24, GROUND);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.4; ctx.stroke();
+  }
 
   ctx.save();
   ctx.translate(x0, y0);
@@ -517,69 +663,112 @@ function drawKiln(R) {
 }
 function drawCooler(R) {
   const [x, y, w, h] = HIT.cooler;
-  ctx.fillStyle = '#6b7682';
+  shadow(x + w / 2, w / 2 + 4);
+  // Gehäuse
+  const g = ctx.createLinearGradient(x, 0, x + w, 0);
+  g.addColorStop(0, '#7b8591'); g.addColorStop(1, '#58626d');
+  ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.moveTo(x, y + 26); ctx.lineTo(x + w, y + 14);
-  ctx.lineTo(x + w - 16, y + h); ctx.lineTo(x + 16, y + h);
+  ctx.moveTo(x, y + 24); ctx.lineTo(x + w, y + 12);
+  ctx.lineTo(x + w - 14, y + h - 26); ctx.lineTo(x + 14, y + h - 26);
   ctx.closePath(); ctx.fill();
   ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.6; ctx.stroke();
-  ctx.strokeStyle = '#49525d'; ctx.lineWidth = 3;
+  // Rost-Linien
+  ctx.strokeStyle = 'rgba(13,19,27,.32)'; ctx.lineWidth = 2.4;
   for (let k = 1; k < 4; k++) {
     ctx.beginPath();
-    ctx.moveTo(x + 16, y + 26 + k * 22);
-    ctx.lineTo(x + w - 16, y + 14 + k * 22);
+    ctx.moveTo(x + 14, y + 24 + k * 20); ctx.lineTo(x + w - 14, y + 12 + k * 20);
     ctx.stroke();
   }
-  box(x + w / 2 - 11, y - 26, 22, 34, '#525c68');
+  // Unterkorn-Trichter
+  ctx.fillStyle = '#4e5863';
+  for (let k = 0; k < 3; k++) {
+    const hx = x + 26 + k * (w - 52) / 2;
+    ctx.beginPath();
+    ctx.moveTo(hx - 15, y + h - 26); ctx.lineTo(hx + 15, y + h - 26);
+    ctx.lineTo(hx, y + h - 2); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = OUTLINE; ctx.lineWidth = 1.8; ctx.stroke();
+  }
+  // Kühlluftgebläse
+  ctx.fillStyle = '#5a6470';
+  ctx.beginPath(); ctx.arc(x + w - 2, y + h - 44, 11, 0, 7); ctx.fill();
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2; ctx.stroke();
+  box(x + w / 2 - 11, y - 26, 22, 38, '#525c68'); // Abluftkamin
   smoke(x + w / 2, y - 26, R.puff + 800, '#aab6c4', 0.3 + clamp(R.clk / 130, 0, 1) * 0.5);
 }
 function drawDome() {
   const [x, y, w, h] = HIT.clinkersilo;
-  const baseY = y + h - 44;
-  ctx.fillStyle = '#8c97a4';
+  shadow(x + w / 2, w / 2 + 4);
+  const baseY = y + h - 36;
+  box(x + 4, baseY, w - 8, 36, '#55606c'); // Sockelring
+  // Kuppel mit Schattierung
+  const g = ctx.createLinearGradient(x, 0, x + w, 0);
+  g.addColorStop(0, '#9aa6b3'); g.addColorStop(0.4, '#aeb8c3');
+  g.addColorStop(0.66, '#8f9aa6'); g.addColorStop(1, '#6c7783');
+  ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.moveTo(x + 6, baseY);
-  ctx.quadraticCurveTo(x + w / 2, y - 14, x + w - 6, baseY);
+  ctx.moveTo(x + 4, baseY);
+  ctx.quadraticCurveTo(x + w / 2, y - 18, x + w - 4, baseY);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.6; ctx.stroke();
-  ctx.strokeStyle = '#5f6975'; ctx.lineWidth = 2.2;
-  for (const fx of [0.3, 0.5, 0.7]) {
+  // Segmentrippen
+  ctx.strokeStyle = 'rgba(13,19,27,.24)'; ctx.lineWidth = 1.6;
+  for (const fx of [0.26, 0.5, 0.74]) {
     ctx.beginPath();
-    ctx.moveTo(x + 6 + (w - 12) * fx, baseY);
-    ctx.lineTo(x + w / 2, y + 6);
+    ctx.moveTo(x + 4 + (w - 8) * fx, baseY);
+    ctx.quadraticCurveTo(x + w / 2, y + 14, x + w / 2, y - 12);
     ctx.stroke();
   }
-  box(x + 6, baseY, w - 12, 44, '#5e6874');
+  box(x + w / 2 - 12, y - 26, 24, 14, '#6b7682'); // Kopfhaus
 }
 function drawCementSilos() {
   const [x, y, w, h] = HIT.cementsilo;
+  shadow(x + w / 2, w / 2 + 6);
+  box(x + 2, y + 6, w - 4, 9, '#6b7682'); // Verbindungssteg oben
   const sw = (w - 8) / 3;
   for (let k = 0; k < 3; k++) {
     const sx = x + 4 + k * sw;
-    ctx.fillStyle = '#b9c1cb';
+    const top = y + 16;
+    box(sx + 2, y + h - 16, sw - 6, 16, '#4d5762'); // Sockel
+    vcyl(sx + 2, top, sw - 6, h - 32, '#ced5dd', '#9aa3ad');
+    // flache Kuppe
+    ctx.fillStyle = '#c4ccd4';
     ctx.beginPath();
-    ctx.moveTo(sx + 2, y + 26); ctx.lineTo(sx + sw / 2, y + 4); ctx.lineTo(sx + sw - 4, y + 26);
+    ctx.moveTo(sx + 1, top + 2);
+    ctx.quadraticCurveTo(sx + sw / 2 - 1, y + 2, sx + sw - 3, top + 2);
     ctx.closePath(); ctx.fill();
     ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.2; ctx.stroke();
-    vcyl(sx + 2, y + 26, sw - 6, h - 30, '#cdd4dc', '#9aa3ad');
+    ctx.strokeStyle = 'rgba(13,19,27,.16)'; ctx.lineWidth = 1.4;
+    for (let yy = top + 30; yy < y + h - 20; yy += 36) {
+      ctx.beginPath(); ctx.moveTo(sx + 3, yy); ctx.lineTo(sx + sw - 5, yy); ctx.stroke();
+    }
   }
 }
 function drawDispatch() {
   const [x, y, w, h] = HIT.dispatch;
-  vcyl(x + 18, y, w - 36, h - 80, '#aab3bd', '#7d8791');
+  shadow(x + w / 2, w / 2 + 12);
+  // Verladesilo
+  vcyl(x + 20, y, w - 40, h - 86, '#aeb7c1', '#7d8791');
   ctx.fillStyle = '#9aa3ad';
   ctx.beginPath();
-  ctx.moveTo(x + 18, y + h - 80); ctx.lineTo(x + w - 18, y + h - 80);
-  ctx.lineTo(x + w / 2, y + h - 48); ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(x + 20, y + h - 86); ctx.lineTo(x + w - 20, y + h - 86);
+  ctx.lineTo(x + w / 2 + 8, y + h - 56); ctx.lineTo(x + w / 2 - 8, y + h - 56);
+  ctx.closePath(); ctx.fill();
   ctx.strokeStyle = OUTLINE; ctx.lineWidth = 2.2; ctx.stroke();
-  const tx = x + 6, ty = y + h - 40;
-  box(tx, ty - 22, 54, 24, '#3f6fae');
-  box(tx + 54, ty - 30, 22, 32, '#d8dde3');
+  box(x + 2, y + h - 60, w - 4, 8, '#5a6470'); // Verladedach
+  // Silozug-LKW
+  const tx = x + 4, ty = y + h - 6;
+  ctx.fillStyle = '#dfe4ea';
+  ctx.beginPath();
+  ctx.moveTo(tx + 16, ty - 30); ctx.lineTo(tx + 60, ty - 33);
+  ctx.lineTo(tx + 60, ty - 13); ctx.lineTo(tx + 16, ty - 13);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = OUTLINE; ctx.lineWidth = 1.8; ctx.stroke();
+  box(tx, ty - 21, 16, 15, '#3f6fae'); // Fahrerhaus
   ctx.fillStyle = '#1d2733';
-  for (const wx of [tx + 14, tx + 44, tx + 66]) {
-    ctx.beginPath(); ctx.arc(wx, ty + 4, 9, 0, 7); ctx.fill();
+  for (const wx of [tx + 8, tx + 32, tx + 50]) {
+    ctx.beginPath(); ctx.arc(wx, ty, 7, 0, 7); ctx.fill();
   }
 }
 

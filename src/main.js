@@ -1,7 +1,7 @@
 // Einstiegspunkt: Spielstand laden (oder neu anlegen) und Spiel starten.
 
-import { defaultState, loadState } from './game/state.js?v=14';
-import { startApp } from './ui/app.js?v=14';
+import { defaultState, loadState } from './game/state.js?v=15';
+import { startApp } from './ui/app.js?v=15';
 
 const state = loadState() || defaultState();
 startApp(state);
