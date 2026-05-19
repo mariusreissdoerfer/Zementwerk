@@ -1,7 +1,7 @@
 // Verdrahtung: Spiel-Loop, Footer-Steuerung, Modals, Canvas-Eingabe.
 
 import { simulate, qualityModel } from '../sim/simulation.js';
-import { initFlowsheet, drawFlowsheet, hitTest } from './flowsheet.js';
+import { initFlowsheet, drawFlowsheet } from './flowsheet.js';
 import { initPanels, openPanel, closePanel, currentPanelUnit, refreshPanel } from './panels.js';
 import { initHud, updateHud, toast, openModal } from './hud.js';
 import { MISSIONS } from '../game/scenarios.js';
@@ -15,10 +15,10 @@ let state, last = 0, acc = 0, tickCount = 0, saveTimer = null;
 export function startApp(s) {
   state = s;
   initHud();
-  initFlowsheet(document.getElementById('flowsheet'));
+  initFlowsheet(document.getElementById('flowsheet'),
+    id => id ? openPanel(id) : closePanel());
   initPanels(state, { onChange: scheduleSave, toast });
   buildFooter();
-  bindCanvas();
   if (!state.metrics) simulate(state);
   last = performance.now();
   requestAnimationFrame(frame);
@@ -61,16 +61,6 @@ function displayMetrics() {
 function scheduleSave() {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => saveState(state), 1200);
-}
-
-// ---------- Canvas-Eingabe ----------
-function bindCanvas() {
-  const cv = document.getElementById('flowsheet');
-  cv.addEventListener('pointerdown', e => {
-    const id = hitTest(e.clientX, e.clientY);
-    if (id) openPanel(id);
-    else closePanel();
-  });
 }
 
 // ---------- Footer ----------
