@@ -4,16 +4,16 @@ import {
   clamp, normalize, blendComposition, clinkerComposition, rawMealPerClinker,
   lsf, silicaModulus, aluminaModulus, bogue, freeLime, kilnTemperature,
   specificHeat, mixNCV, blaine, strength28, electricalEnergy, processCO2, fuelCO2,
-} from './physics.js?v=18';
-import { MATERIALS } from '../data/materials.js?v=18';
-import { FUELS } from '../data/fuels.js?v=18';
-import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js?v=18';
+} from './physics.js?v=19';
+import { MATERIALS } from '../data/materials.js?v=19';
+import { FUELS } from '../data/fuels.js?v=19';
+import { classifyCement, strengthClass, PRICE_BY_CLASS } from '../data/cementTypes.js?v=19';
 import {
   ECON, rawMaterialCost, additiveCost, fuelCost, co2Cost, maintenanceCost, updateMarket,
-} from './economy.js?v=18';
-import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js?v=18';
-import { checkMissions } from '../game/scenarios.js?v=18';
-import { fmtMoney } from '../util.js?v=18';
+} from './economy.js?v=19';
+import { unitAvailability, tickDisturbances, maybeTriggerEvent } from './events.js?v=19';
+import { checkMissions } from '../game/scenarios.js?v=19';
+import { fmtMoney } from '../util.js?v=19';
 
 // Auslegungskapazitäten der Aggregate [t/h]
 export const CAP = { crusher: 420, rawmill: 230, kiln: 165, cementmill: 185 };
@@ -174,6 +174,7 @@ export function simulate(state) {
     kiln: { Brennstoff: costs.fuel, 'CO₂': costs.co2, Strom: kilnElec, Wartung: um('kiln') },
     cooler: { Strom: elecB.cooler * eP, Wartung: um('cooler') },
     cementmill: { Strom: elecB.cementmill * eP, Zumahlstoffe: costs.add, Wartung: um('cementmill') },
+    dispatch: { Personal: costs.pers },
   };
   for (const id in unitCosts) {
     let t = 0;

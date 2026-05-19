@@ -1,10 +1,10 @@
 // Aggregat-Detailpanel mit Schiebereglern und Live-Anzeigen.
 
-import { qualityModel, CAP } from '../sim/simulation.js?v=18';
-import { repairCost } from '../game/upgrades.js?v=18';
-import { FUELS } from '../data/fuels.js?v=18';
-import { ADDITIVES } from '../data/materials.js?v=18';
-import { fmt0, fmt1, fmt2, fmtMoney, fmtInt } from '../util.js?v=18';
+import { qualityModel, CAP } from '../sim/simulation.js?v=19';
+import { repairCost } from '../game/upgrades.js?v=19';
+import { FUELS } from '../data/fuels.js?v=19';
+import { ADDITIVES } from '../data/materials.js?v=19';
+import { fmt0, fmt1, fmt2, fmtMoney, fmtInt } from '../util.js?v=19';
 
 const NAMES = {
   quarry: 'Steinbruch', crusher: 'Brecher', rawmill: 'Rohmühle', blending: 'Mischbett / Rohmehl-Silo',
